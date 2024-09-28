@@ -1,8 +1,8 @@
 # Publish-Addon
 
-This is a PowerShell module I wrote so that I can invoke the
-[Bigwigs Packager](https://github.com/BigWigsMods/packager) locally when testing
-addons.
+This is a PowerShell module written by [Tuller](https://github.com/Tuller) to invoke the [Bigwigs Packager](https://github.com/BigWigsMods/packager) locally when testing addons.
+
+This fork adds some new functionality and backports some functionality from Tuller's new [wowp](https://github.com/Tuller/wowp) script.
 
 ## Setup
 
@@ -11,32 +11,32 @@ addons.
 1. Import this module into a PowerShell file
 1. Set the following environment variables:
 
-    | Name             | Value                |
-    | ---------------- | -------------------- |
-    | WOW_HOME         | Wherever you installed World of Warcraft  |
+   | Name     | Value                                    |
+   | -------- | ---------------------------------------- |
+   | WOW_HOME | Wherever you installed World of Warcraft |
 
 ## Usage
 
-From an addon directory with a .pkgmeta file, run one of the following:
+From an AddOn directory with a **.pkgmeta** file, run one of the following:
 
 ```powershell
-# Publishes an addon using the bigwigs packager too the Retail addons directory
+# Publishes an AddOn using the BigWigs Packager tool to the Retail AddOns directory
 Publish-Addon
 
 # Publish to one or more release channels (Live, PTR, Beta, Alpha)
 Publish-Addon -Channel Live
 Publish-Addon -Channel Live, PTR
 
-# all release channels
+# All release channels
 Publish-Addon -Channel All
 
 # Specify one or more game flavors (Retail, Wrath, Vanilla)
 Publish-Addon -Flavor Retail
 Publish-Addon -Flavor Wrath, Vanilla
 
-# classic era + classic
+# Classic Era + Classic
 Publish-Addon -Flavor Classic
 
-# all game flavors
+# All game flavors
 Publish-Addon -Channel All
 ```
