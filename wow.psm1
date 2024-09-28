@@ -2,9 +2,10 @@ function Publish-Addon {
     param (
         [ValidateSet("Retail", "Classic", "Wrath", "Vanilla", "All")]
         [string[]]$Flavor = "Retail",
-        [ValidateSet("Live","PTR", "Beta", "Alpha", "All")]
+        [ValidateSet("Live", "PTR", "Beta", "Alpha", "All")]
         [string[]]$Channel = "Live",
-        [string]$PackagerVersion = "v2.1.0",
+        [string]$PackagerVersion = "v2.3.1",
+        [string]$PackagerSha256 = "40c28ec61b19ce6cba7051580d14e6ee6e8c8a42a364396788cc4876e55ceaec",
         [switch]$live = $false,
         [switch]$ptr = $false,
         [switch]$beta = $false,
@@ -22,7 +23,7 @@ function Publish-Addon {
             return;
         }
 
-        if($live -or $ptr -or $beta -or $alpha) {
+        if ($live -or $ptr -or $beta -or $alpha) {
             $Channel = @()
 
             if ($live) {
@@ -42,18 +43,18 @@ function Publish-Addon {
             }
         }
 
-        # figure out what game flavors we're publishing for
-        $retail =  $Flavor -Contains "Retail" -or $Flavor -Contains "All"
-        $wrath =   $Flavor -Contains "Wrath" -or $Flavor -Contains "Classic" -or $Flavor -Contains "All"
+        # Figure out what game flavors we're publishing for
+        $retail = $Flavor -Contains "Retail" -or $Flavor -Contains "All"
+        $wrath = $Flavor -Contains "Wrath" -or $Flavor -Contains "Classic" -or $Flavor -Contains "All"
         $vanilla = $Flavor -Contains "Vanilla" -or $Flavor -Contains "Classic" -or $Flavor -Contains "All"
 
-        # figure out what release channels we're publishing for
-        $live =  $Channel -Contains "Live" -or $Channel -Contains "All"
-        $ptr =   $Channel -Contains "PTR" -or $Channel -Contains "All"
-        $beta =  $Channel -Contains "Beta" -or $Channel -Contains "All"
+        # Figure out what release channels we're publishing for
+        $live = $Channel -Contains "Live" -or $Channel -Contains "All"
+        $ptr = $Channel -Contains "PTR" -or $Channel -Contains "All"
+        $beta = $Channel -Contains "Beta" -or $Channel -Contains "All"
         $alpha = $Channel -Contains "Alpha" -or $Channel -Contains "All"
 
-        # grab all of the game directory folders we're going to publish to
+        # Grab all of the game directory folders we're going to publish to
         $gameDirs = [System.Collections.Generic.List[string]]::new()
         if ($retail) {
             if ($live) {
@@ -115,29 +116,36 @@ function Publish-Addon {
         $releaseDir = "$WORKING_DIR/out"
         $packager = "$WORKING_DIR/release.sh"
 
-        # 1. setup directories
+        # 1. Set up directories
         wsl -e mkdir -p "$addonDir"
 
-        # 2. copy files over to WSL (to avoid performance issues when working via NTFS)
+        # 2. Copy files over to WSL (to avoid performance issues when working via NTFS)
         Write-Host "Copying files from $pwd"
         $pwdWSL = wsl -e wslpath "$pwd"
         wsl -e rsync -rz --delete "$pwdWSL/" "$addonDir"
 
-        # 3. grab the packager script
+        # 3. Grab the packager script and verify its hash
         wsl -e curl -s -o "$packager" "https://raw.githubusercontent.com/BigWigsMods/packager/$PackagerVersion/release.sh"
+
+        wsl echo "$PackagerSha256 $packager" `| sha256sum -c
+
+        if (-not $?) {
+            throw 'Failed to verify hash for release.sh'
+        }
+
         wsl -e chmod u+x "$packager"
 
-        # 4. construct the packager arguments
+        # 4. Construct the packager arguments
         $packagerArgs = [System.Collections.Generic.List[string]]::new()
         $packagerArgs.add('-dlzS')
         $packagerArgs.add('-t {0}' -f $addonDir)
         $packagerArgs.add('-r {0}' -f $releaseDir)
 
-        # 5. execute the packager
+        # 5. Execute the packager
         Write-Host "Running packager"
         Invoke-Expression "wsl -e $packager $($packagerArgs -Join ' ')"
 
-        # 6. copy the output files over to the target wow directories
+        # 6. Copy the output files over to the target WoW directories
         $releaseDirUNC = wsl -e wslpath -w $releaseDir
         foreach ($gameDir in $gameDirs) {
             $wowAddonsDir = Join-Path $WOW_HOME $gameDir Interface AddOns
@@ -154,7 +162,7 @@ function Publish-Addon {
             }
         }
 
-        # 7. cleanup
+        # 7. Cleanup
         Write-Host "Cleaning up"
         wsl -e rm -rf $WORKING_DIR
         Write-Host "Publish complete"
