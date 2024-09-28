@@ -6,6 +6,7 @@ function Publish-Addon {
         [string[]]$Channel = "Live",
         [string]$PackagerVersion = "v2.3.1",
         [string]$PackagerSha256 = "40c28ec61b19ce6cba7051580d14e6ee6e8c8a42a364396788cc4876e55ceaec",
+        [switch]$SkipTocCreation = $false,
         [switch]$live = $false,
         [switch]$ptr = $false,
         [switch]$beta = $false,
@@ -127,7 +128,7 @@ function Publish-Addon {
         # 3. Grab the packager script and verify its hash
         wsl -e curl -s -o "$packager" "https://raw.githubusercontent.com/BigWigsMods/packager/$PackagerVersion/release.sh"
 
-        wsl echo "$PackagerSha256 $packager" `| sha256sum -c
+        wsl echo "$PackagerSha256 $packager" `| sha256sum -c | Out-Null
 
         if (-not $?) {
             throw 'Failed to verify hash for release.sh'
@@ -137,9 +138,13 @@ function Publish-Addon {
 
         # 4. Construct the packager arguments
         $packagerArgs = [System.Collections.Generic.List[string]]::new()
-        $packagerArgs.add('-dlzS')
-        $packagerArgs.add('-t {0}' -f $addonDir)
-        $packagerArgs.add('-r {0}' -f $releaseDir)
+        $packagerArgs.Add('-dlz')
+        $packagerArgs.Add('-t {0}' -f $addonDir)
+        $packagerArgs.Add('-r {0}' -f $releaseDir)
+
+        if (-not $SkipTocCreation) {
+            $packagerArgs.Add('-S')
+        }
 
         # 5. Execute the packager
         Write-Host "Running packager"
